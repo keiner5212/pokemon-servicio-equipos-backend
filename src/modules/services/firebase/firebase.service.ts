@@ -1,5 +1,5 @@
 // src/firebase/firebase.service.ts
-import { Injectable, OnModuleInit } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { initializeApp, FirebaseApp } from "firebase/app";
 import { Firestore, getFirestore } from "firebase/firestore";
 import { Auth, getAuth, signInWithEmailAndPassword } from "firebase/auth";
@@ -10,23 +10,24 @@ import {
   getDownloadURL,
   FirebaseStorage,
 } from "firebase/storage";
-import { Config } from "@/modules/enviroment/Config";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
+  private readonly logger = new Logger(FirebaseService.name);
   private app: FirebaseApp;
   private db: Firestore;
   private auth: Auth;
   private storage: FirebaseStorage;
 
-  constructor() {
+  constructor(private configService: ConfigService) {
     this.app = initializeApp({
-      apiKey: Config.FB_API_KEY,
-      authDomain: Config.FB_AUTH_DOMAIN,
-      projectId: Config.FB_PROJECT_ID,
-      storageBucket: Config.FB_STORAGE_BUCKET,
-      messagingSenderId: Config.FB_MESSAGE_SENDER_ID,
-      appId: Config.FB_APP_ID,
+      apiKey: this.configService.get<string>("FB_API_KEY"),
+      authDomain: this.configService.get<string>("FB_AUTH_DOMAIN"),
+      projectId: this.configService.get<string>("FB_PROJECT_ID"),
+      storageBucket: this.configService.get<string>("FB_STORAGE_BUCKET"),
+      messagingSenderId: this.configService.get<string>("FB_MESSAGE_SENDER_ID"),
+      appId: this.configService.get<string>("FB_APP_ID"),
     });
 
     this.db = getFirestore(this.app);
@@ -35,15 +36,19 @@ export class FirebaseService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.signInUser(Config.FB_API_USER_EMAIL, Config.FB_API_USER_PASSWORD);
+    this.logger.log("Initializing Firebase module...");
+    await this.signInUser(
+      this.configService.get<string>("FB_API_USER_EMAIL") || "",
+      this.configService.get<string>("FB_API_USER_PASSWORD") || ""
+    );
   }
 
   async signInUser(email: string, password: string): Promise<void> {
     try {
       const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
-      console.log("User signed in:", userCredential.user.uid);
+      this.logger.log(`User signed in: ${userCredential.user.uid}`);
     } catch (error) {
-      console.error("Error signing in:", error);
+      this.logger.error("Error signing in:", error);
     }
   }
 
@@ -51,9 +56,11 @@ export class FirebaseService implements OnModuleInit {
     try {
       const storageRef = ref(this.storage, `images/${name}`);
       const snapshot = await uploadBytes(storageRef, file);
-      return await getDownloadURL(snapshot.ref);
+      const downloadUrl = await getDownloadURL(snapshot.ref);
+      this.logger.log(`Image uploaded successfully: ${downloadUrl}`);
+      return downloadUrl;
     } catch (error) {
-      console.error("Error uploading image:", error);
+      this.logger.error("Error uploading image:", error);
       throw error;
     }
   }
