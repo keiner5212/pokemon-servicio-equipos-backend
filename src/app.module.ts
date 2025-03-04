@@ -4,11 +4,13 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { LoggerMiddleware } from "./middlewares/RequestLogger";
 import { FirebaseModule } from "./modules/services/firebase/firebase.module";
+import { PokemonController } from "./pokemon/pokemon.controller";
+import { PokemonModule } from "./pokemon/pokemon.module";
 
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
-  }), FirebaseModule],
+  }), FirebaseModule, PokemonModule],
   controllers: [AppController],
   providers: [
     AppService
