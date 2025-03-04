@@ -4,14 +4,25 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { LoggerMiddleware } from "./middlewares/RequestLogger";
 import { FirebaseModule } from "./modules/services/firebase/firebase.module";
+import { HttpModule } from '@nestjs/axios';
+import { PokemonService } from './services/pokemon.service';
+import { PokemonController } from './controllers/pokemon.controller';
 
 @Module({
-  imports: [ConfigModule.forRoot({
-    isGlobal: true,
-  }), FirebaseModule],
-  controllers: [AppController],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    FirebaseModule,
+    HttpModule
+  ],
+  controllers: [
+    AppController,
+    PokemonController
+  ],
   providers: [
-    AppService
+    AppService,
+    PokemonService
   ],
 })
 
