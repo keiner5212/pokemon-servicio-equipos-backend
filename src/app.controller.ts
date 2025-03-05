@@ -18,10 +18,10 @@ export class AppController {
   }
 
   @Get('pokemones')
-  async getPokemon(): Promise<Pokemon> {
+  async getPokemon(): Promise<{ pokemones: Pokemon[] }> {
     this.logger.log('Recibida petición GET /api/pokemones');
     try {
-      const pokemon = await this.pokemonService.obtenerPokemon();
+      const pokemon = await this.pokemonService.obtenerPokemones();
       this.logger.log('Pokémon obtenido correctamente');
       return pokemon;
     } catch (error) {

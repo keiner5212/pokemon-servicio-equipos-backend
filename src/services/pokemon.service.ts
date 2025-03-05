@@ -4,13 +4,25 @@ import { Pokemon } from '../models/pokemon.model';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 
-// Decorador que marca esta clase como un servicio inyectable en NestJS
+/**
+ * Servicio que maneja las operaciones relacionadas con los Pokémon
+ * Se encarga de la comunicación con la API externa y el mapeo de datos
+ */
 @Injectable()
 export class PokemonService {
     private readonly logger = new Logger(PokemonService.name);
-    private readonly apiUrl: string = 'https://run.mocky.io/v3/bd844bc2-1b29-4438-854f-e366a3d3b1e8';
+    
+    /**
+     * URL de la API externa que proporciona los datos de los Pokémon
+     * Esta URL devuelve un JSON con un array de pokemones y sus características
+     */
+    private readonly apiUrl: string = 'https://run.mocky.io/v3/74e0af84-03e3-4083-8e07-be4c5b826b26';
 
-    // Constructor que recibe el servicio HTTP mediante inyección de dependencias
+    /**
+     * Constructor del servicio
+     * @param httpService - Servicio de HTTP de NestJS para realizar peticiones
+     * @param configService - Servicio de configuración para acceder a variables de entorno
+     */
     constructor(
         private readonly httpService: HttpService,
         private readonly configService: ConfigService
@@ -19,41 +31,60 @@ export class PokemonService {
     }
 
     /**
-     * Método que obtiene los datos de un Pokémon desde la API externa
-     * @returns Promise<Pokemon> - Retorna una promesa con los datos del Pokémon
-     * @throws Error - Si hay un error en la petición HTTP
+     * Obtiene la lista completa de Pokémon desde la API externa
+     * Realiza la petición HTTP, valida la respuesta y mapea los datos al modelo Pokemon
+     * @returns Promise<{ pokemones: Pokemon[] }> - Objeto con array de Pokémon
+     * @throws Error si la respuesta de la API no es válida o si faltan datos
      */
-    async obtenerPokemon(): Promise<Pokemon> {
+    async obtenerPokemones(): Promise<{ pokemones: Pokemon[] }> {
         try {
-            this.logger.log('Iniciando petición a la API...');
-            // Realiza la petición GET y convierte el Observable a Promise
+            this.logger.log('Iniciando petición a la API para obtener pokemones...');
+            
+            // Realiza la petición HTTP y espera la respuesta
             const { data } = await firstValueFrom(
                 this.httpService.get(this.apiUrl)
             );
-            this.logger.log('Datos recibidos de la API');
+            
+            this.logger.debug('Datos recibidos de la API:', JSON.stringify(data));
 
-            // Mapea los datos recibidos a una nueva instancia de la clase Pokemon
-            return new Pokemon(
-                data.id,                  // ID del Pokémon
-                data.nombre,              // Nombre del Pokémon
-                data.tipos,              // Array de tipos
-                data.nivel,              // Nivel actual
-                {
-                    // Objeto con las estadísticas
-                    hp: data.estadisticas.hp,
-                    ataque: data.estadisticas.ataque,
-                    defensa: data.estadisticas.defensa,
-                    ataque_especial: data.estadisticas.ataque_especial,
-                    defensa_especial: data.estadisticas.defensa_especial,
-                    velocidad: data.estadisticas.velocidad
-                },
-                data.movimientos,         // Array de movimientos
-                data.sprite              // Agregamos el sprite
-            );
+            // Valida que la respuesta tenga la estructura esperada
+            if (!data || !data.pokemones || !Array.isArray(data.pokemones)) {
+                throw new Error('La respuesta de la API no contiene un array de pokemones válido');
+            }
+
+            // Mapea cada pokemon del array a una instancia de la clase Pokemon
+            const pokemonesArray = data.pokemones.map(pokemon => {
+                if (!pokemon.estadisticas) {
+                    this.logger.error(`Pokemon sin estadísticas: ${JSON.stringify(pokemon)}`);
+                    throw new Error(`El pokemon ${pokemon.nombre || 'desconocido'} no tiene estadísticas`);
+                }
+
+                return new Pokemon(
+                    pokemon.id,
+                    pokemon.nombre,
+                    pokemon.tipos,
+                    pokemon.nivel,
+                    {
+                        hp: pokemon.estadisticas.hp,
+                        ataque: pokemon.estadisticas.ataque,
+                        defensa: pokemon.estadisticas.defensa,
+                        ataque_especial: pokemon.estadisticas.ataque_especial,
+                        defensa_especial: pokemon.estadisticas.defensa_especial,
+                        velocidad: pokemon.estadisticas.velocidad
+                    },
+                    pokemon.movimientos,
+                    pokemon.sprite
+                );
+            });
+
+            this.logger.log(`Se obtuvieron ${pokemonesArray.length} pokemones exitosamente`);
+            
+            return {
+                pokemones: pokemonesArray
+            };
         } catch (error) {
-            this.logger.error(`Error en la petición: ${error.message}`);
-            // Manejo de errores: lanza un nuevo error con un mensaje más descriptivo
-            throw new Error(`Error al obtener el Pokémon: ${error.message}`);
-        } 
-    }    
+            this.logger.error(`Error al obtener pokemones: ${error.message}`);
+            throw new Error(`Error al obtener los pokemones: ${error.message}`);
+        }
+    }
 } 
