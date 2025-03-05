@@ -10,17 +10,26 @@ export class EquipoPokemon {
 
     /**
      * Constructor que inicializa un nuevo Equipo Pokémon
+     * @param id - Identificador único del equipo
      * @param entrenador - Datos del entrenador dueño del equipo
      * @param pokemones - Array de pokemones del equipo (máximo 6)
      * @throws Error si se intenta crear un equipo con más de 6 pokemones
      */
     constructor(
-        private readonly entrenador: Entrenador,
-        private pokemones: Pokemon[] = []
+        private readonly id: number,
+        private readonly entrenador: any,
+        private readonly pokemones: any[]
     ) {
         if (pokemones.length > this.MAX_POKEMONES) {
-            throw new Error(`Un equipo no puede tener más de ${this.MAX_POKEMONES} pokemones`);
+            throw new Error(`Un equipo no puede tener más de ${this.MAX_POKEMONES} Pokémon`);
         }
+    }
+
+    /**
+     * Obtiene el ID del equipo
+     */
+    getId(): number {
+        return this.id;
     }
 
     /**
@@ -50,47 +59,41 @@ export class EquipoPokemon {
     }
 
     /**
+     * Obtiene el entrenador del equipo
+     */
+    getEntrenador(): any {
+        return this.entrenador;
+    }
+
+    /**
+     * Obtiene la lista de pokemones del equipo
+     */
+    getPokemones(): any[] {
+        return this.pokemones;
+    }
+
+    /**
      * Obtiene la cantidad actual de pokemones en el equipo
-     * @returns number - Cantidad de pokemones en el equipo
      */
     getCantidadPokemones(): number {
         return this.pokemones.length;
     }
 
     /**
-     * Verifica si el equipo está lleno (tiene 6 pokemones)
-     * @returns boolean - true si el equipo está lleno, false si no
+     * Verifica si el equipo está lleno
      */
     estaLleno(): boolean {
         return this.pokemones.length >= this.MAX_POKEMONES;
     }
 
     /**
-     * Obtiene el entrenador del equipo
-     * @returns Entrenador - Datos del entrenador
-     */
-    getEntrenador(): Entrenador {
-        return this.entrenador;
-    }
-
-    /**
-     * Obtiene la lista de pokemones del equipo
-     * @returns Pokemon[] - Array con los pokemones del equipo
-     */
-    getPokemones(): Pokemon[] {
-        return [...this.pokemones];
-    }
-
-    /**
      * Serializa la instancia de EquipoPokemon a un objeto JSON
-     * @returns Objeto con los datos del equipo pokemon
      */
     toJSON() {
         return {
-            entrenador: this.entrenador,        // Datos del entrenador
-            pokemones: this.pokemones,          // Array de pokemones
-            cantidad_pokemones: this.pokemones.length,  // Cantidad actual de pokemones
-            equipo_completo: this.estaLleno()   // Indica si el equipo está lleno
+            id: this.id,
+            entrenador: this.entrenador,
+            pokemones: this.pokemones
         };
     }
 } 
