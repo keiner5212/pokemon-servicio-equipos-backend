@@ -8,19 +8,13 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class PokemonService {
     private readonly logger = new Logger(PokemonService.name);
-    private readonly apiUrl: string;
+    private readonly apiUrl: string = 'https://run.mocky.io/v3/bd844bc2-1b29-4438-854f-e366a3d3b1e8';
 
     // Constructor que recibe el servicio HTTP mediante inyección de dependencias
     constructor(
         private readonly httpService: HttpService,
         private readonly configService: ConfigService
     ) {
-        const apiUrl = this.configService.get<string>('POKEMON_API_URL');
-        if (!apiUrl) {
-            this.logger.error('POKEMON_API_URL no está definida');
-            throw new Error('POKEMON_API_URL no está definida en las variables de entorno');
-        }
-        this.apiUrl = apiUrl;
         this.logger.log(`Servicio iniciado con URL: ${this.apiUrl}`);
     }
 
@@ -49,16 +43,17 @@ export class PokemonService {
                     hp: data.estadisticas.hp,
                     ataque: data.estadisticas.ataque,
                     defensa: data.estadisticas.defensa,
-                    ataqueEspecial: data.estadisticas.ataque_especial,
-                    defensaEspecial: data.estadisticas.defensa_especial,
+                    ataque_especial: data.estadisticas.ataque_especial,
+                    defensa_especial: data.estadisticas.defensa_especial,
                     velocidad: data.estadisticas.velocidad
                 },
-                data.movimientos         // Array de movimientos
+                data.movimientos,         // Array de movimientos
+                data.sprite              // Agregamos el sprite
             );
         } catch (error) {
             this.logger.error(`Error en la petición: ${error.message}`);
             // Manejo de errores: lanza un nuevo error con un mensaje más descriptivo
             throw new Error(`Error al obtener el Pokémon: ${error.message}`);
-        }
-    }
+        } 
+    }    
 } 

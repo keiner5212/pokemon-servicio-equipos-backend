@@ -10,11 +10,12 @@ export class Pokemon {
             hp: number,
             ataque: number,
             defensa: number,
-            ataqueEspecial: number,
-            defensaEspecial: number,
+            ataque_especial: number,
+            defensa_especial: number,
             velocidad: number
         },
-        private readonly movimientos: string[] // Lista de movimientos disponibles
+        private readonly movimientos: string[], // Lista de movimientos disponibles
+        private readonly sprite: string     // Agregamos el sprite
     ) {}
 
     // Métodos getter para acceder a las propiedades privadas
@@ -40,8 +41,8 @@ export class Pokemon {
         hp: number,
         ataque: number,
         defensa: number,
-        ataqueEspecial: number,
-        defensaEspecial: number,
+        ataque_especial: number,
+        defensa_especial: number,
         velocidad: number
     } {
         return {...this.estadisticas};
@@ -50,5 +51,10 @@ export class Pokemon {
     // Retorna una copia del array para evitar modificaciones externas
     getMovimientos(): string[] {
         return [...this.movimientos];
+    }
+
+    // Nuevo getter para el sprite
+    getSprite(): string {
+        return this.sprite;
     }
 } 
