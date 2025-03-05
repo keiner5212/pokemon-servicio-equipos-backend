@@ -13,6 +13,8 @@ export class EquipoPokemonService {
     private readonly logger = new Logger(EquipoPokemonService.name);
     private readonly apiUrl = 'https://run.mocky.io/v3/6d7aa16d-1386-4e50-9503-2901fdbbede6';
     private equipos: Map<number, EquipoPokemon> = new Map();
+    private equiposPorEntrenador: Map<number, number[]> = new Map();
+    private ultimoId = 0;
 
     constructor(
         private readonly entrenadorService: EntrenadorService,
@@ -23,6 +25,13 @@ export class EquipoPokemonService {
     }
 
     /**
+     * Genera un nuevo ID único para un equipo
+     */
+    private generarNuevoId(): number {
+        return ++this.ultimoId;
+    }
+
+    /**
      * Carga los equipos iniciales desde la API externa
      */
     private async cargarEquiposIniciales() {
@@ -30,11 +39,23 @@ export class EquipoPokemonService {
             const { data } = await firstValueFrom(this.httpService.get(this.apiUrl));
             if (data && data.equipos) {
                 data.equipos.forEach(equipo => {
+                    const equipoId = this.generarNuevoId();
                     const equipoPokemon = new EquipoPokemon(
+                        equipoId,
                         equipo.entrenador,
                         equipo.pokemones
                     );
-                    this.equipos.set(equipo.entrenador.id, equipoPokemon);
+                    this.equipos.set(equipoId, equipoPokemon);
+                    
+                    // Agregar referencia al equipo en el mapa de entrenadores
+                    const entrenadorId = equipo.entrenador.id;
+                    if (!this.equiposPorEntrenador.has(entrenadorId)) {
+                        this.equiposPorEntrenador.set(entrenadorId, []);
+                    }
+                    const equiposEntrenador = this.equiposPorEntrenador.get(entrenadorId);
+                    if (equiposEntrenador) {
+                        equiposEntrenador.push(equipoId);
+                    }
                 });
                 this.logger.log(`Se cargaron ${this.equipos.size} equipos iniciales`);
             }
@@ -44,22 +65,34 @@ export class EquipoPokemonService {
     }
 
     /**
-     * Obtiene el equipo Pokémon de un entrenador específico
-     * @param entrenadorId - ID del entrenador
-     * @returns Promise con el equipo Pokémon del entrenador
-     * @throws NotFoundException si no se encuentra el equipo
+     * Obtiene todos los equipos de un entrenador específico
      */
-    async obtenerEquipoPorEntrenador(entrenadorId: number): Promise<EquipoPokemon> {
-        const equipo = this.equipos.get(entrenadorId);
+    async obtenerEquiposPorEntrenador(entrenadorId: number): Promise<{ equipos: EquipoPokemon[] }> {
+        const equiposIds = this.equiposPorEntrenador.get(entrenadorId) || [];
+        const equiposEntrenador = equiposIds
+            .map(id => this.equipos.get(id))
+            .filter(equipo => equipo !== undefined);
+
+        if (equiposEntrenador.length === 0) {
+            throw new NotFoundException(`No se encontraron equipos para el entrenador ${entrenadorId}`);
+        }
+
+        return { equipos: equiposEntrenador };
+    }
+
+    /**
+     * Obtiene un equipo específico por su ID
+     */
+    async obtenerEquipoPorId(equipoId: number): Promise<EquipoPokemon> {
+        const equipo = this.equipos.get(equipoId);
         if (!equipo) {
-            throw new NotFoundException(`No se encontró equipo para el entrenador ${entrenadorId}`);
+            throw new NotFoundException(`No se encontró el equipo con ID ${equipoId}`);
         }
         return equipo;
     }
 
     /**
      * Obtiene todos los equipos Pokémon registrados
-     * @returns Promise con array de todos los equipos Pokémon
      */
     async obtenerTodosLosEquipos(): Promise<{ equipos: EquipoPokemon[] }> {
         return {
@@ -69,16 +102,9 @@ export class EquipoPokemonService {
 
     /**
      * Crea un nuevo equipo Pokémon para un entrenador
-     * @param entrenadorId - ID del entrenador
-     * @param pokemonIds - Array con los IDs de los Pokémon a agregar al equipo
-     * @returns Promise con el equipo creado
      */
     async crearEquipo(entrenadorId: number, pokemonIds: number[]): Promise<EquipoPokemon> {
         this.logger.log(`Creando equipo para entrenador ${entrenadorId}`);
-
-        if (this.equipos.has(entrenadorId)) {
-            throw new Error(`El entrenador ${entrenadorId} ya tiene un equipo registrado`);
-        }
 
         const { entrenadores } = await this.entrenadorService.obtenerEntrenadores();
         const entrenador = entrenadores.find(e => e['id'] === entrenadorId);
@@ -95,21 +121,29 @@ export class EquipoPokemonService {
             return pokemon;
         });
 
-        const equipo = new EquipoPokemon(entrenador, pokemonesEquipo);
-        this.equipos.set(entrenadorId, equipo);
+        const equipoId = this.generarNuevoId();
+        const equipo = new EquipoPokemon(equipoId, entrenador, pokemonesEquipo);
+        this.equipos.set(equipoId, equipo);
+
+        // Agregar referencia al nuevo equipo
+        if (!this.equiposPorEntrenador.has(entrenadorId)) {
+            this.equiposPorEntrenador.set(entrenadorId, []);
+        }
+        const equiposEntrenador = this.equiposPorEntrenador.get(entrenadorId);
+        if (equiposEntrenador) {
+            equiposEntrenador.push(equipoId);
+        }
+
         return equipo;
     }
 
     /**
-     * Modifica el equipo Pokémon de un entrenador
-     * @param entrenadorId - ID del entrenador
-     * @param pokemonIds - Nuevos IDs de Pokémon para el equipo
-     * @returns Promise con el equipo actualizado
+     * Modifica un equipo Pokémon específico
      */
-    async modificarEquipo(entrenadorId: number, pokemonIds: number[]): Promise<EquipoPokemon> {
-        const equipoExistente = this.equipos.get(entrenadorId);
+    async modificarEquipo(equipoId: number, pokemonIds: number[]): Promise<EquipoPokemon> {
+        const equipoExistente = this.equipos.get(equipoId);
         if (!equipoExistente) {
-            throw new NotFoundException(`No se encontró equipo para el entrenador ${entrenadorId}`);
+            throw new NotFoundException(`No se encontró el equipo con ID ${equipoId}`);
         }
 
         const { pokemones } = await this.pokemonService.obtenerPokemones();
@@ -122,23 +156,32 @@ export class EquipoPokemonService {
         });
 
         const equipoActualizado = new EquipoPokemon(
+            equipoId,
             equipoExistente.getEntrenador(),
             pokemonesEquipo
         );
 
-        this.equipos.set(entrenadorId, equipoActualizado);
+        this.equipos.set(equipoId, equipoActualizado);
         return equipoActualizado;
     }
 
     /**
-     * Elimina el equipo Pokémon de un entrenador
-     * @param entrenadorId - ID del entrenador
-     * @returns boolean indicando si se eliminó el equipo
+     * Elimina un equipo Pokémon específico
      */
-    async eliminarEquipo(entrenadorId: number): Promise<boolean> {
-        if (!this.equipos.has(entrenadorId)) {
-            throw new NotFoundException(`No se encontró equipo para el entrenador ${entrenadorId}`);
+    async eliminarEquipo(equipoId: number): Promise<boolean> {
+        const equipo = this.equipos.get(equipoId);
+        if (!equipo) {
+            throw new NotFoundException(`No se encontró el equipo con ID ${equipoId}`);
         }
-        return this.equipos.delete(entrenadorId);
+
+        // Eliminar referencia del equipo en el mapa de entrenadores
+        const entrenadorId = equipo.getEntrenador()['id'];
+        const equiposEntrenador = this.equiposPorEntrenador.get(entrenadorId) || [];
+        this.equiposPorEntrenador.set(
+            entrenadorId,
+            equiposEntrenador.filter(id => id !== equipoId)
+        );
+
+        return this.equipos.delete(equipoId);
     }
 } 
