@@ -7,6 +7,10 @@ import { FirebaseModule } from "./modules/services/firebase/firebase.module";
 import { HttpModule } from '@nestjs/axios';
 import { PokemonService } from './services/pokemon.service';
 import { PokemonController } from './controllers/pokemon.controller';
+import { EntrenadorController } from './controllers/entrenador.controller';
+import { EntrenadorService } from './services/entrenador.service';
+import { EquipoPokemonController } from './controllers/equipo-pokemon.controller';
+import { EquipoPokemonService } from './services/equipo-pokemon.service';
 
 @Module({
   imports: [
@@ -18,11 +22,15 @@ import { PokemonController } from './controllers/pokemon.controller';
   ],
   controllers: [
     AppController,
-    PokemonController
+    PokemonController,
+    EntrenadorController,
+    EquipoPokemonController
   ],
   providers: [
     AppService,
-    PokemonService
+    PokemonService,
+    EntrenadorService,
+    EquipoPokemonService
   ],
 })
 
