@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { Entrenador } from '../models/entrenador.model';
 import { firstValueFrom } from 'rxjs';
@@ -14,7 +14,7 @@ export class EntrenadorService {
     /**
      * URL de la API externa que proporciona los datos de los Entrenadores
      */
-    private readonly apiUrl: string = 'https://run.mocky.io/v3/35e2fb0a-aa68-4cf5-8b3b-1147ff2e86c5';
+    private readonly apiUrl: string = 'https://run.mocky.io/v3/59ee04ac-55e0-414b-b516-74cf880d3b3c';
 
     /**
      * Constructor del servicio
@@ -66,5 +66,9 @@ export class EntrenadorService {
             this.logger.error(`Error al obtener entrenadores: ${error.message}`);
             throw new Error(`Error al obtener los entrenadores: ${error.message}`);
         }
+    }
+
+    async removePokemonFromTeam(entrenadorId: string, pokemonId: string): Promise<boolean> {
+        throw new Error('Method not implemented.');
     }
 } 
