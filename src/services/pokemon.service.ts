@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { Pokemon } from '../models/pokemon.model';
 import { firstValueFrom } from 'rxjs';
@@ -11,12 +11,13 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class PokemonService {
     private readonly logger = new Logger(PokemonService.name);
+    private pokemones: Pokemon[] = [];
     
     /**
      * URL de la API externa que proporciona los datos de los Pokémon
      * Esta URL devuelve un JSON con un array de pokemones y sus características
      */
-    private readonly apiUrl: string = 'https://run.mocky.io/v3/74e0af84-03e3-4083-8e07-be4c5b826b26';
+    private readonly apiUrl: string = 'https://run.mocky.io/v3/80b8134b-409a-4d85-bb3c-52a4a5548c36';
 
     /**
      * Constructor del servicio
@@ -28,63 +29,67 @@ export class PokemonService {
         private readonly configService: ConfigService
     ) {
         this.logger.log(`Servicio iniciado con URL: ${this.apiUrl}`);
+        // Cargar los Pokemon al iniciar el servicio
+        this.cargarPokemones();
     }
 
     /**
-     * Obtiene la lista completa de Pokémon desde la API externa
-     * Realiza la petición HTTP, valida la respuesta y mapea los datos al modelo Pokemon
-     * @returns Promise<{ pokemones: Pokemon[] }> - Objeto con array de Pokémon
-     * @throws Error si la respuesta de la API no es válida o si faltan datos
+     * Carga inicial de Pokemon desde la API externa
      */
-    async obtenerPokemones(): Promise<{ pokemones: Pokemon[] }> {
+    private async cargarPokemones() {
         try {
-            this.logger.log('Iniciando petición a la API para obtener pokemones...');
-            
-            // Realiza la petición HTTP y espera la respuesta
             const { data } = await firstValueFrom(
                 this.httpService.get(this.apiUrl)
             );
             
-            this.logger.debug('Datos recibidos de la API:', JSON.stringify(data));
-
-            // Valida que la respuesta tenga la estructura esperada
             if (!data || !data.pokemones || !Array.isArray(data.pokemones)) {
-                throw new Error('La respuesta de la API no contiene un array de pokemones válido');
+                throw new Error('Formato de respuesta inválido');
             }
 
-            // Mapea cada pokemon del array a una instancia de la clase Pokemon
-            const pokemonesArray = data.pokemones.map(pokemon => {
-                if (!pokemon.estadisticas) {
-                    this.logger.error(`Pokemon sin estadísticas: ${JSON.stringify(pokemon)}`);
-                    throw new Error(`El pokemon ${pokemon.nombre || 'desconocido'} no tiene estadísticas`);
-                }
+            this.pokemones = data.pokemones.map(pokemon => new Pokemon(
+                pokemon.id,
+                pokemon.nombre,
+                pokemon.tipos,
+                pokemon.nivel,
+                pokemon.estadisticas,
+                pokemon.movimientos,
+                pokemon.sprite
+            ));
 
-                return new Pokemon(
-                    pokemon.id,
-                    pokemon.nombre,
-                    pokemon.tipos,
-                    pokemon.nivel,
-                    {
-                        hp: pokemon.estadisticas.hp,
-                        ataque: pokemon.estadisticas.ataque,
-                        defensa: pokemon.estadisticas.defensa,
-                        ataque_especial: pokemon.estadisticas.ataque_especial,
-                        defensa_especial: pokemon.estadisticas.defensa_especial,
-                        velocidad: pokemon.estadisticas.velocidad
-                    },
-                    pokemon.movimientos,
-                    pokemon.sprite
-                );
-            });
-
-            this.logger.log(`Se obtuvieron ${pokemonesArray.length} pokemones exitosamente`);
-            
-            return {
-                pokemones: pokemonesArray
-            };
+            this.logger.log(`${this.pokemones.length} Pokemon cargados correctamente`);
         } catch (error) {
-            this.logger.error(`Error al obtener pokemones: ${error.message}`);
-            throw new Error(`Error al obtener los pokemones: ${error.message}`);
+            this.logger.error('Error al cargar Pokemon:', error);
+            throw new HttpException(
+                'Error al cargar la base de datos de Pokemon',
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
-} 
+
+    /**
+     * Obtiene la lista completa de Pokémon
+     * @returns Promise<{ pokemones: Pokemon[] }> - Objeto con array de Pokémon
+     */
+    async obtenerPokemones(): Promise<{ pokemones: Pokemon[] }> {
+        return { pokemones: this.pokemones };
+    }
+
+    /**
+     * Obtiene un Pokémon específico por su ID
+     * @param id - ID del Pokémon a buscar
+     * @returns Promise<Pokemon> - Pokemon encontrado
+     * @throws HttpException si el Pokemon no existe
+     */
+    async obtenerPokemonPorId(id: number): Promise<Pokemon> {
+        const pokemon = this.pokemones.find(p => p.getId() === id);
+        
+        if (!pokemon) {
+            throw new HttpException(
+                `Pokemon con ID ${id} no encontrado`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+        
+        return pokemon;
+    }
+}

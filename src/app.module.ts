@@ -9,8 +9,8 @@ import { PokemonService } from './services/pokemon.service';
 import { PokemonController } from './controllers/pokemon.controller';
 import { EntrenadorController } from './controllers/entrenador.controller';
 import { EntrenadorService } from './services/entrenador.service';
-import { EquipoPokemonController } from './controllers/equipo-pokemon.controller';
-import { EquipoPokemonService } from './services/equipo-pokemon.service';
+import { EquipoController } from './controllers/equipo.controller';
+import { EquipoService } from './services/equipo.service';
 
 @Module({
   imports: [
@@ -24,13 +24,13 @@ import { EquipoPokemonService } from './services/equipo-pokemon.service';
     AppController,
     PokemonController,
     EntrenadorController,
-    EquipoPokemonController
+    EquipoController
   ],
   providers: [
     AppService,
     PokemonService,
     EntrenadorService,
-    EquipoPokemonService
+    EquipoService
   ],
 })
 
