@@ -1,16 +1,26 @@
-// src/firebase/firebase.service.ts
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { initializeApp, FirebaseApp } from "firebase/app";
-import { Firestore, getFirestore } from "firebase/firestore";
-import { Auth, getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { Firestore, getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { Auth, getAuth, signInWithEmailAndPassword, connectAuthEmulator } from "firebase/auth";
 import {
   getStorage,
   ref,
   uploadBytes,
   getDownloadURL,
   FirebaseStorage,
+  connectStorageEmulator
 } from "firebase/storage";
 import { ConfigService } from "@nestjs/config";
+
+interface FirebaseConfig {
+  apiKey?: string;
+  authDomain?: string;
+  projectId?: string;
+  storageBucket?: string;
+  messagingSenderId?: string;
+  appId?: string;
+  databaseURL?: string;
+}
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
@@ -21,18 +31,38 @@ export class FirebaseService implements OnModuleInit {
   private storage: FirebaseStorage;
 
   constructor(private configService: ConfigService) {
-    this.app = initializeApp({
-      apiKey: this.configService.get<string>("FB_API_KEY"),
-      authDomain: this.configService.get<string>("FB_AUTH_DOMAIN"),
-      projectId: this.configService.get<string>("FB_PROJECT_ID"),
-      storageBucket: this.configService.get<string>("FB_STORAGE_BUCKET"),
-      messagingSenderId: this.configService.get<string>("FB_MESSAGE_SENDER_ID"),
-      appId: this.configService.get<string>("FB_APP_ID"),
-    });
+    let config: FirebaseConfig = {
+      apiKey: this.configService.get<string>("FB_API_KEY") || "",
+      projectId: this.configService.get<string>("FB_PROJECT_ID") || "",
+      appId: this.configService.get<string>("FB_APP_ID") || "",
+    };
 
+
+    if (this.configService.get<string>("FB_ENVIRONMENT") === "local") {
+      config = {
+        ...config,
+        databaseURL: "http://localhost:9000?ns="+this.configService.get<string>("FB_PROJECT_ID"),
+      };
+    } else {
+      config = {
+        ...config,
+        authDomain: this.configService.get<string>("FB_AUTH_DOMAIN") || "",
+        storageBucket: this.configService.get<string>("FB_STORAGE_BUCKET") || "",
+        messagingSenderId: this.configService.get<string>("FB_MESSAGE_SENDER_ID") || "",
+      }
+    }
+
+    this.app = initializeApp(config);
     this.db = getFirestore(this.app);
     this.auth = getAuth(this.app);
     this.storage = getStorage(this.app);
+
+    if (this.configService.get<string>("FB_ENVIRONMENT") === "local") {
+      connectFirestoreEmulator(this.db, "localhost", 8080);
+      connectAuthEmulator(this.auth, "http://localhost:9099");
+      connectStorageEmulator(this.storage, "localhost", 9199);
+      this.logger.log("Connected to Firebase emulators");
+    }
   }
 
   async onModuleInit() {
