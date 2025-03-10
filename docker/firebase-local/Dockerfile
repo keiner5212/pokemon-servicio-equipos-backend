@@ -1,12 +1,11 @@
 FROM node:20-alpine
 
-WORKDIR /firebase
+WORKDIR /
 
 RUN apk add --no-cache openjdk17-jre
 
 RUN npm install -g firebase-tools
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY . .
 
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["node", "/entrypoint.js"]

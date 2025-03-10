@@ -11,6 +11,4 @@ services:
       - "9005:9005" # OAuth proxy
     environment:
       - FIREBASE_PROJECT=pokemon-equipos
-    volumes:
-      - ./firebase:/firebase
     restart: unless-stopped
