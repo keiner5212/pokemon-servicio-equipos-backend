@@ -31,57 +31,37 @@ export class FirebaseService implements OnModuleInit {
   private storage: FirebaseStorage;
 
   constructor(private configService: ConfigService) {
-    try {
-      let config: FirebaseConfig = {
-        apiKey: this.configService.get<string>("FB_API_KEY") || "",
-        projectId: this.configService.get<string>("FB_PROJECT_ID") || "",
-        appId: this.configService.get<string>("FB_APP_ID") || "",
+    let config: FirebaseConfig = {
+      apiKey: this.configService.get<string>("FB_API_KEY") || "",
+      projectId: this.configService.get<string>("FB_PROJECT_ID") || "",
+      appId: this.configService.get<string>("FB_APP_ID") || "",
+    };
+
+
+    if (this.configService.get<string>("FB_ENVIRONMENT") === "local") {
+      config = {
+        ...config,
+        databaseURL: "http://localhost:9000?ns="+this.configService.get<string>("FB_PROJECT_ID"),
       };
-
-      // Verificar que los valores de configuración no sean los valores por defecto
-      if (config.apiKey === "your_firebase_api_key" || config.projectId === "your_firebase_project_id" || config.appId === "your_firebase_app_id") {
-        this.logger.warn("⚠️ Usando valores de configuración por defecto para Firebase. Por favor, actualiza el archivo .env con tus credenciales reales.");
+    } else {
+      config = {
+        ...config,
+        authDomain: this.configService.get<string>("FB_AUTH_DOMAIN") || "",
+        storageBucket: this.configService.get<string>("FB_STORAGE_BUCKET") || "",
+        messagingSenderId: this.configService.get<string>("FB_MESSAGE_SENDER_ID") || "",
       }
+    }
 
-      const isLocal = this.configService.get<string>("FB_ENVIRONMENT") === "local";
-      this.logger.log(`Inicializando Firebase en modo: ${isLocal ? 'local (emuladores)' : 'producción'}`);
+    this.app = initializeApp(config);
+    this.db = getFirestore(this.app);
+    this.auth = getAuth(this.app);
+    this.storage = getStorage(this.app);
 
-      if (isLocal) {
-        config = {
-          ...config,
-          databaseURL: "http://localhost:9000?ns="+this.configService.get<string>("FB_PROJECT_ID"),
-        };
-      } else {
-        config = {
-          ...config,
-          authDomain: this.configService.get<string>("FB_AUTH_DOMAIN") || "",
-          storageBucket: this.configService.get<string>("FB_STORAGE_BUCKET") || "",
-          messagingSenderId: this.configService.get<string>("FB_MESSAGE_SENDER_ID") || "",
-        }
-      }
-
-      this.logger.debug("Configuración de Firebase:", JSON.stringify(config, null, 2));
-      
-      this.app = initializeApp(config);
-      this.db = getFirestore(this.app);
-      this.auth = getAuth(this.app);
-      this.storage = getStorage(this.app);
-
-      if (isLocal) {
-        this.logger.log("Conectando a emuladores de Firebase...");
-        try {
-          connectFirestoreEmulator(this.db, "localhost", 8080);
-          connectAuthEmulator(this.auth, "http://localhost:9099");
-          connectStorageEmulator(this.storage, "localhost", 9199);
-          this.logger.log("✅ Conectado a emuladores de Firebase");
-        } catch (error) {
-          this.logger.error(`❌ Error al conectar a emuladores: ${error.message}`, error.stack);
-          this.logger.warn("Asegúrate de que los emuladores estén en ejecución con 'firebase emulators:start'");
-        }
-      }
-    } catch (error) {
-      this.logger.error(`❌ Error al inicializar Firebase: ${error.message}`, error.stack);
-      throw error;
+    if (this.configService.get<string>("FB_ENVIRONMENT") === "local") {
+      connectFirestoreEmulator(this.db, "localhost", 8080);
+      connectAuthEmulator(this.auth, "http://localhost:9099");
+      connectStorageEmulator(this.storage, "localhost", 9199);
+      this.logger.log("Connected to Firebase emulators");
     }
   }
 
