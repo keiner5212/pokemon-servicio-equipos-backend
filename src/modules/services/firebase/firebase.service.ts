@@ -67,18 +67,31 @@ export class FirebaseService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.log("Initializing Firebase module...");
-    await this.signInUser(
-      this.configService.get<string>("FB_API_USER_EMAIL") || "",
-      this.configService.get<string>("FB_API_USER_PASSWORD") || ""
-    );
+    try {
+      const email = this.configService.get<string>("FB_API_USER_EMAIL") || "";
+      const password = this.configService.get<string>("FB_API_USER_PASSWORD") || "";
+      
+      if (!email || !password || email === "your_firebase_api_user_email" || password === "your_firebase_api_user_password") {
+        this.logger.warn("⚠️ Credenciales de usuario de Firebase no configuradas o usando valores por defecto.");
+        this.logger.warn("Es posible que algunas operaciones que requieren autenticación no funcionen correctamente.");
+        return;
+      }
+      
+      await this.signInUser(email, password);
+    } catch (error) {
+      this.logger.error(`❌ Error al inicializar el módulo de Firebase: ${error.message}`, error.stack);
+    }
   }
 
   async signInUser(email: string, password: string): Promise<void> {
     try {
+      this.logger.log(`Intentando iniciar sesión con usuario: ${email}`);
       const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
-      this.logger.log(`User signed in: ${userCredential.user.uid}`);
+      this.logger.log(`✅ Usuario autenticado correctamente: ${userCredential.user.uid}`);
     } catch (error) {
-      this.logger.error("Error signing in:", error);
+      this.logger.error(`❌ Error al iniciar sesión: ${error.message}`, error.stack);
+      this.logger.warn("Verifica que el usuario exista en Firebase y tenga los permisos necesarios.");
+      throw error;
     }
   }
 

@@ -1,6 +1,8 @@
-import { Controller, Get, Delete, Logger, Param, HttpException, HttpStatus, Body, Req, Res } from '@nestjs/common';
+import { Controller, Get, Delete, Logger, Param, HttpException, HttpStatus, Req, Res } from '@nestjs/common';
 import { EntrenadorService } from '../services/entrenador.service';
 import { Request, Response } from 'express';
+import { FirebaseService } from '@/modules/services/firebase/firebase.service';
+import { collection, Firestore, getDocs } from 'firebase/firestore';
 
 /**
  * Controlador que maneja las rutas relacionadas con los Entrenadores
@@ -9,12 +11,16 @@ import { Request, Response } from 'express';
 @Controller('api/entrenadores')
 export class EntrenadorController {
     private readonly logger = new Logger(EntrenadorController.name);
+    private db: Firestore
 
     /**
      * Constructor del controlador
      * @param entrenadorService - Servicio que maneja la lógica de negocio de Entrenadores
      */
-    constructor(private readonly entrenadorService: EntrenadorService) {}
+    constructor(private readonly entrenadorService: EntrenadorService, 
+        private readonly firebaseService: FirebaseService) {
+            this.db = this.firebaseService.getFirestoreInstance();
+        }
 
     /**
      * Endpoint que obtiene la lista completa de Entrenadores
@@ -88,5 +94,13 @@ export class EntrenadorController {
             this.logger.error(`Error al eliminar Pokémon del equipo: ${error.message}`);
             throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    
+    @Get("pruebaFirebase")
+    async pruebaFirebase() {
+        const querySnapshot = await getDocs(collection(this.db, 'aver')); // por favor pai, no tengan magic strings, separen los nombres de las collecciones en un archivo de configuración o en otro lado, hasta en los modelos podria ser, asi como se hace en laravel
+        // otra cosam no me gustan los docstring que pone chat gpt, asi que borren los comentarios que no sean estrictamente necesarios
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     }
 } 

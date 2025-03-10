@@ -30,7 +30,7 @@ import { EquipoService } from './services/equipo.service';
     AppService,
     PokemonService,
     EntrenadorService,
-    EquipoService
+    EquipoService,
   ],
 })
 
