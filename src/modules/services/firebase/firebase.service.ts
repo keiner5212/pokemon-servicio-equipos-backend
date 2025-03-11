@@ -30,7 +30,7 @@ export class FirebaseService implements OnModuleInit {
   private auth: Auth;
   private storage: FirebaseStorage;
 
-  constructor(private configService: ConfigService) {
+  constructor(private readonly configService: ConfigService) {
     let config: FirebaseConfig = {
       apiKey: this.configService.get<string>("FB_API_KEY") || "",
       projectId: this.configService.get<string>("FB_PROJECT_ID") || "",
@@ -72,14 +72,13 @@ export class FirebaseService implements OnModuleInit {
       const password = this.configService.get<string>("FB_API_USER_PASSWORD") || "";
       
       if (!email || !password || email === "your_firebase_api_user_email" || password === "your_firebase_api_user_password") {
-        this.logger.warn("⚠️ Credenciales de usuario de Firebase no configuradas o usando valores por defecto.");
-        this.logger.warn("Es posible que algunas operaciones que requieren autenticación no funcionen correctamente.");
+        this.logger.warn("⚠️ Credenciales de usuario de Firebase no configuradas.");
         return;
       }
       
       await this.signInUser(email, password);
     } catch (error) {
-      this.logger.error(`❌ Error al inicializar el módulo de Firebase: ${error.message}`, error.stack);
+      this.logger.error(`❌ Error al inicializar el módulo de Firebase: ${error.message}`);
     }
   }
 

@@ -1,84 +1,41 @@
-import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Logger} from '@nestjs/common';
 import { EquipoService } from '../services/equipo.service';
-import { EquipoPokemon } from '../models/equipo';
 
-interface CrearEquipoDto {
-    nombre: string;
-    pokemonIds: number[];
-}
-
-interface ActualizarEquipoDto {
-    nombre: string;
-    pokemonIds: number[];
-}
-
-interface EntrenadorResponse {
-    id: number;
-    nombre: string;
-    edad: number;
-    sexo: string;
-}
-
-interface EquipoResponse {
-    entrenador: EntrenadorResponse;
-    equipos: EquipoPokemon | EquipoPokemon[];
-}
-
-@Controller('equipos')
+@Controller('api/equipos')
 export class EquipoController {
-    constructor(private readonly equipoService: EquipoService) {}
+    private readonly logger = new Logger(EquipoController.name);
 
-    @Post(':entrenadorId')
+    constructor(private readonly equipoService: EquipoService) { }
+
+    @Post()
     async crearEquipo(
-        @Param('entrenadorId') entrenadorId: string,
-        @Body() crearEquipoDto: CrearEquipoDto
-    ): Promise<EquipoResponse> {
-        return await this.equipoService.crearEquipo(
-            entrenadorId,
-            crearEquipoDto.nombre,
-            crearEquipoDto.pokemonIds
-        );
+        @Body('entrenadorId') entrenadorId: string,
+        @Body('nombre') nombre: string,
+        @Body('pokemonIds') pokemonIds: number[]
+    ) {
+        this.logger.log(`Creando equipo "${nombre}" para el entrenador ${entrenadorId}`);
+        return this.equipoService.crearEquipo(entrenadorId, nombre, pokemonIds);
     }
 
-    @Get(':entrenadorId')
-    async obtenerEquipos(
-        @Param('entrenadorId') entrenadorId: string
-    ): Promise<EquipoResponse> {
-        return await this.equipoService.obtenerEquipos(entrenadorId);
+    @Get(':id')
+    async obtenerEquipo(@Param('id') id: string) {
+        this.logger.log(`Obteniendo equipo con ID: ${id}`);
+        return this.equipoService.obtenerEquipo(id);
     }
 
-    @Get(':entrenadorId/:equipoId')
-    async obtenerEquipo(
-        @Param('entrenadorId') entrenadorId: string,
-        @Param('equipoId') equipoId: string
-    ): Promise<EquipoResponse> {
-        return await this.equipoService.obtenerEquipo(entrenadorId, equipoId);
-    }
-
-    @Put(':entrenadorId/:equipoId')
+    @Put(':id')
     async actualizarEquipo(
-        @Param('entrenadorId') entrenadorId: string,
-        @Param('equipoId') equipoId: string,
-        @Body() actualizarEquipoDto: ActualizarEquipoDto
-    ): Promise<EquipoResponse> {
-        return await this.equipoService.actualizarEquipo(
-            entrenadorId,
-            equipoId,
-            actualizarEquipoDto.nombre,
-            actualizarEquipoDto.pokemonIds
-        );
+        @Param('id') id: string,
+        @Body('nombre') nombre: string,
+        @Body('pokemonIds') pokemonIds: number[]
+    ) {
+        this.logger.log(`Actualizando equipo con ID: ${id}`);
+        return this.equipoService.actualizarEquipo(id, nombre, pokemonIds);
     }
 
-    @Delete(':entrenadorId/:equipoId')
-    async eliminarEquipo(
-        @Param('entrenadorId') entrenadorId: string,
-        @Param('equipoId') equipoId: string
-    ): Promise<void> {
-        await this.equipoService.eliminarEquipo(entrenadorId, equipoId);
-    }
-
-    @Get()
-    async obtenerTodosLosEntrenadores(): Promise<EquipoResponse[]> {
-        return await this.equipoService.obtenerTodosLosEntrenadores();
+    @Delete(':id')
+    async eliminarEquipo(@Param('id') id: string) {
+        this.logger.log(`Eliminando equipo con ID: ${id}`);
+        return this.equipoService.eliminarEquipo(id);
     }
 }
