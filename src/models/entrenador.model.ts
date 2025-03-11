@@ -6,15 +6,17 @@ export class Entrenador {
     /**
      * Constructor que inicializa un nuevo Entrenador
      * @param id - Identificador único del entrenador
-     * @param nombre - Nombre completo del entrenador
-     * @param edad - Edad del entrenador
-     * @param sexo - Género del entrenador (Masculino/Femenino)
+     * @param birth_date - Fecha de nacimiento del entrenador
+     * @param email - Correo electrónico del entrenador
+     * @param first_name - Nombre del entrenador
+     * @param last_name - Apellido del entrenador
      */
     constructor(
-        private readonly id: number,
-        private readonly nombre: string,
-        private readonly edad: number,
-        private readonly sexo: string
+        public id: string,
+        public birth_date: string,
+        public email: string,
+        public first_name: string,
+        public last_name: string
     ) {}
 
     /**
@@ -24,9 +26,10 @@ export class Entrenador {
     toJSON() {
         return {
             id: this.id,         // ID único del entrenador
-            nombre: this.nombre, // Nombre del entrenador
-            edad: this.edad,     // Edad del entrenador
-            sexo: this.sexo      // Género del entrenador
+            birth_date: this.birth_date, // Fecha de nacimiento del entrenador
+            email: this.email,     // Correo electrónico del entrenador
+            first_name: this.first_name, // Nombre del entrenador
+            last_name: this.last_name      // Apellido del entrenador
         };
     }
 } 

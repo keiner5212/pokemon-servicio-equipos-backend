@@ -77,6 +77,19 @@ export class EquipoController {
         await this.equipoService.eliminarEquipo(entrenadorId, equipoId);
     }
 
+    @Delete(':entrenadorId/:equipoId/:pokemonId')
+    async eliminarPokemonDeEquipo(
+        @Param('entrenadorId') entrenadorId: string,
+        @Param('equipoId') equipoId: string,
+        @Param('pokemonId') pokemonId: string
+    ): Promise<EquipoResponse> {
+        return await this.equipoService.eliminarPokemonDeEquipo(
+            entrenadorId,
+            equipoId,
+            parseInt(pokemonId)
+        );
+    }
+
     @Get()
     async obtenerTodosLosEntrenadores(): Promise<EquipoResponse[]> {
         return await this.equipoService.obtenerTodosLosEntrenadores();

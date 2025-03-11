@@ -4,92 +4,25 @@ import { firstValueFrom } from 'rxjs';
 import { EquipoPokemon } from '../models/equipo';
 import { Pokemon } from '../models/pokemon.model';
 import { PokemonService } from './pokemon.service';
+import { EntrenadorService } from './entrenador.service';
 
 @Injectable()
 export class EquipoService {
     private equipos: Map<string, EquipoPokemon[]> = new Map();
     private readonly logger = new Logger(EquipoService.name);
-    private readonly entrenadorServiceUrl = 'http://localhost:8000/api/entrenadores';
 
     constructor(
         private readonly httpService: HttpService,
-        private readonly pokemonService: PokemonService
-    ) {}
-
-    private async getPokemonFromService(pokemonId: number): Promise<Pokemon> {
-        try {
-            const pokemon = await this.pokemonService.obtenerPokemonPorId(pokemonId);
-            return pokemon;
-        } catch (error) {
-            console.error('Error al obtener Pokemon:', error.response?.data);
-            throw new HttpException(
-                `Pokemon con ID ${pokemonId} no encontrado`,
-                HttpStatus.NOT_FOUND
-            );
-        }
+        private readonly pokemonService: PokemonService,
+        private readonly entrenadorService: EntrenadorService
+    ) {
+        this.logger.log('Servicio de equipos iniciado');
     }
 
-    private async getEntrenadorInfo(entrenadorId: string): Promise<any> {
+    async crearEquipo(entrenadorId: string, nombre: string, pokemonIds: number[]): Promise<any> {
         try {
-            const numericId = parseInt(entrenadorId);
-            if (isNaN(numericId)) {
-                throw new HttpException('ID de entrenador inválido', HttpStatus.BAD_REQUEST);
-            }
-
-            // Obtener la lista completa de entrenadores
-            const response = await firstValueFrom(
-                this.httpService.get(this.entrenadorServiceUrl)
-            );
-
-            // Buscar el entrenador específico por ID
-            const entrenador = response.data.entrenadores.find(e => e.id === numericId);
-            if (!entrenador) {
-                throw new HttpException('Entrenador no encontrado', HttpStatus.NOT_FOUND);
-            }
-
-            return entrenador;
-        } catch (error) {
-            console.error('Error al obtener entrenador:', error.response?.data);
-            if (error instanceof HttpException) {
-                throw error;
-            }
-            throw new HttpException('Error al obtener información del entrenador', HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    private async verificarEntrenador(entrenadorId: string): Promise<boolean> {
-        try {
-            // Convertir el ID a número
-            const numericId = parseInt(entrenadorId);
-            if (isNaN(numericId)) {
-                return false;
-            }
-            await firstValueFrom(this.httpService.get(`${this.entrenadorServiceUrl}/${numericId}`));
-            return true;
-        } catch (error) {
-            return false;
-        }
-    }
-
-    async crearEquipo(
-        entrenadorId: string,
-        nombre: string,
-        pokemonIds: number[]
-    ): Promise<any> {
-        try {
-            const numericId = parseInt(entrenadorId);
-            if (isNaN(numericId)) {
-                throw new HttpException('ID de entrenador inválido', HttpStatus.BAD_REQUEST);
-            }
-
-            // Obtener la lista de entrenadores y buscar el específico
-            const listResponse = await firstValueFrom(this.httpService.get(this.entrenadorServiceUrl));
-            const entrenadores: any[] = listResponse.data.entrenadores;
-            const entrenador = entrenadores.find(e => Number(e.id) === numericId);
-            
-            if (!entrenador) {
-                throw new HttpException('Entrenador no encontrado', HttpStatus.NOT_FOUND);
-            }
+            // Verificar que el entrenador existe
+            const entrenador = await this.entrenadorService.obtenerEntrenador(parseInt(entrenadorId));
 
             // Verificar límite de 6 Pokemon por equipo
             if (pokemonIds.length > 6) {
@@ -100,34 +33,25 @@ export class EquipoService {
             }
 
             // Obtener los Pokemon y verificar que existan
-            try {
-                const pokemones = await Promise.all(
-                    pokemonIds.map(id => this.getPokemonFromService(id))
-                );
-                
-                // Crear el equipo con ID numérico incremental basado en la cantidad de equipos existentes
-                const equiposExistentes = this.equipos.get(entrenadorId) || [];
-                const equipoId = equiposExistentes.length + 1;
-                const equipo = new EquipoPokemon(equipoId, nombre, pokemones);
+            const pokemones = await Promise.all(
+                pokemonIds.map(id => this.pokemonService.obtenerPokemonPorId(id))
+            );
 
-                // Obtener o inicializar la lista de equipos del entrenador
-                equiposExistentes.push(equipo);
-                this.equipos.set(entrenadorId, equiposExistentes);
+            // Crear el equipo con ID numérico incremental
+            const equiposExistentes = this.equipos.get(entrenadorId) || [];
+            const equipoId = equiposExistentes.length + 1;
+            const equipo = new EquipoPokemon(equipoId, nombre, pokemones);
 
-                return {
-                    entrenador,
-                    equipos: equipo
-                };
-            } catch (error) {
-                if (error instanceof HttpException) {
-                    throw error;
-                }
-                throw new HttpException(
-                    'Uno o más Pokemon no encontrados',
-                    HttpStatus.NOT_FOUND
-                );
-            }
+            // Guardar el equipo
+            equiposExistentes.push(equipo);
+            this.equipos.set(entrenadorId, equiposExistentes);
+
+            return {
+                entrenador,
+                equipo
+            };
         } catch (error) {
+            this.logger.error(`Error al crear equipo: ${error.message}`);
             if (error instanceof HttpException) {
                 throw error;
             }
@@ -140,20 +64,8 @@ export class EquipoService {
 
     async obtenerEquipos(entrenadorId: string): Promise<any> {
         try {
-            const numericId = parseInt(entrenadorId);
-            if (isNaN(numericId)) {
-                throw new HttpException('ID de entrenador inválido', HttpStatus.BAD_REQUEST);
-            }
-
-            const listResponse = await firstValueFrom(this.httpService.get(this.entrenadorServiceUrl));
-            const entrenadores: any[] = listResponse.data.entrenadores;
-            
-            const entrenador = entrenadores.find(e => Number(e.id) === numericId);
-            
-            if (!entrenador) {
-                throw new HttpException('Entrenador no encontrado', HttpStatus.NOT_FOUND);
-            }
-
+            // Verificar que el entrenador existe
+            const entrenador = await this.entrenadorService.obtenerEntrenador(parseInt(entrenadorId));
             const equipos = this.equipos.get(entrenadorId) || [];
 
             return {
@@ -161,11 +73,12 @@ export class EquipoService {
                 equipos
             };
         } catch (error) {
+            this.logger.error(`Error al obtener equipos: ${error.message}`);
             if (error instanceof HttpException) {
                 throw error;
             }
             throw new HttpException(
-                `Error al obtener información del entrenador: ${error.message}`,
+                `Error al obtener equipos: ${error.message}`,
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
@@ -173,45 +86,33 @@ export class EquipoService {
 
     async obtenerEquipo(entrenadorId: string, equipoId: string): Promise<any> {
         try {
-            const numericEntrenadorId = parseInt(entrenadorId);
-            const numericEquipoId = parseInt(equipoId);
+            // Verificar que el entrenador existe
+            const entrenador = await this.entrenadorService.obtenerEntrenador(parseInt(entrenadorId));
             
-            if (isNaN(numericEntrenadorId) || isNaN(numericEquipoId)) {
-                throw new HttpException('ID inválido', HttpStatus.BAD_REQUEST);
-            }
-
-            const listResponse = await firstValueFrom(this.httpService.get(this.entrenadorServiceUrl));
-            const entrenadores: any[] = listResponse.data.entrenadores;
-            
-            const entrenador = entrenadores.find(e => Number(e.id) === numericEntrenadorId);
-            
-            if (!entrenador) {
-                throw new HttpException('Entrenador no encontrado', HttpStatus.NOT_FOUND);
-            }
-
             const equipos = this.equipos.get(entrenadorId);
             if (!equipos) {
                 return {
                     entrenador,
-                    equipos: []
+                    equipo: null
                 };
             }
 
-            const equipo = equipos.find(e => e.getId() === numericEquipoId);
+            const equipo = equipos.find(e => e.getId() === parseInt(equipoId));
             if (!equipo) {
                 throw new HttpException('Equipo no encontrado', HttpStatus.NOT_FOUND);
             }
 
             return {
                 entrenador,
-                equipos: equipo
+                equipo
             };
         } catch (error) {
+            this.logger.error(`Error al obtener equipo: ${error.message}`);
             if (error instanceof HttpException) {
                 throw error;
             }
             throw new HttpException(
-                `Error al obtener información del entrenador: ${error.message}`,
+                `Error al obtener equipo: ${error.message}`,
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
@@ -224,46 +125,43 @@ export class EquipoService {
         pokemonIds: number[]
     ): Promise<any> {
         try {
-            const numericEntrenadorId = parseInt(entrenadorId);
-            const numericEquipoId = parseInt(equipoId);
-            
-            if (isNaN(numericEntrenadorId) || isNaN(numericEquipoId)) {
-                throw new HttpException('ID inválido', HttpStatus.BAD_REQUEST);
-            }
+            // Verificar que el entrenador existe
+            const entrenador = await this.entrenadorService.obtenerEntrenador(parseInt(entrenadorId));
 
-            // Verificar cantidad de pokémon
+            // Verificar límite de 6 Pokemon
             if (pokemonIds.length > 6) {
-                throw new HttpException('Un equipo no puede tener más de 6 Pokémon', HttpStatus.BAD_REQUEST);
+                throw new HttpException(
+                    'Un equipo no puede tener más de 6 Pokemon',
+                    HttpStatus.BAD_REQUEST
+                );
             }
 
-            // Obtener información del entrenador
-            const entrenador = await this.getEntrenadorInfo(entrenadorId);
-
-            // Verificar y actualizar el equipo
+            // Obtener y verificar el equipo existente
             const equipos = this.equipos.get(entrenadorId);
             if (!equipos) {
-                throw new HttpException('Equipos no encontrados para el entrenador', HttpStatus.NOT_FOUND);
+                throw new HttpException('Equipo no encontrado', HttpStatus.NOT_FOUND);
             }
 
-            const indiceEquipo = equipos.findIndex(e => e.getId() === numericEquipoId);
+            const indiceEquipo = equipos.findIndex(e => e.getId() === parseInt(equipoId));
             if (indiceEquipo === -1) {
                 throw new HttpException('Equipo no encontrado', HttpStatus.NOT_FOUND);
             }
 
-            // Obtener los Pokemon y verificar que existan
+            // Obtener los Pokemon actualizados
             const pokemones = await Promise.all(
-                pokemonIds.map(id => this.getPokemonFromService(id))
+                pokemonIds.map(id => this.pokemonService.obtenerPokemonPorId(id))
             );
 
-            const equipoActualizado = new EquipoPokemon(numericEquipoId, nombre, pokemones);
+            // Actualizar el equipo
+            const equipoActualizado = new EquipoPokemon(parseInt(equipoId), nombre, pokemones);
             equipos[indiceEquipo] = equipoActualizado;
 
             return {
                 entrenador,
-                equipos: equipoActualizado
+                equipo: equipoActualizado
             };
         } catch (error) {
-            console.error('Error al actualizar equipo:', error);
+            this.logger.error(`Error al actualizar equipo: ${error.message}`);
             if (error instanceof HttpException) {
                 throw error;
             }
@@ -275,56 +173,104 @@ export class EquipoService {
     }
 
     async eliminarEquipo(entrenadorId: string, equipoId: string): Promise<void> {
-        // Verificar que el equipo existe
-        await this.obtenerEquipo(entrenadorId, equipoId);
+        try {
+            // Verificar que el entrenador existe
+            await this.entrenadorService.obtenerEntrenador(parseInt(entrenadorId));
 
-        const equipos = this.equipos.get(entrenadorId);
-        if (equipos) {
-            const indiceEquipo = equipos.findIndex(e => e.getId() === parseInt(equipoId));
-            if (indiceEquipo !== -1) {
-                equipos.splice(indiceEquipo, 1);
+            const equipos = this.equipos.get(entrenadorId);
+            if (!equipos) {
+                throw new HttpException('Equipo no encontrado', HttpStatus.NOT_FOUND);
             }
+
+            const indiceEquipo = equipos.findIndex(e => e.getId() === parseInt(equipoId));
+            if (indiceEquipo === -1) {
+                throw new HttpException('Equipo no encontrado', HttpStatus.NOT_FOUND);
+            }
+
+            equipos.splice(indiceEquipo, 1);
+        } catch (error) {
+            this.logger.error(`Error al eliminar equipo: ${error.message}`);
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(
+                `Error al eliminar equipo: ${error.message}`,
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
     async obtenerTodosLosEntrenadores(): Promise<any[]> {
         try {
-            console.log('Intentando obtener entrenadores de:', this.entrenadorServiceUrl);
-            const response = await firstValueFrom(this.httpService.get(this.entrenadorServiceUrl));
-            console.log('Respuesta del servicio de entrenadores:', response.data);
+            const { trainers } = await this.entrenadorService.obtenerEntrenadores();
             
-            // Extraer los entrenadores del objeto de respuesta
-            const entrenadores: any[] = response.data.entrenadores || response.data;
-            
-            if (!Array.isArray(entrenadores)) {
-                throw new Error('No se pudo obtener la lista de entrenadores');
-            }
-
-            return await Promise.all(entrenadores.map(async (entrenador) => {
-                // Convertir el ID a string si viene como número
-                const entrenadorId = entrenador.id.toString();
-                const equiposEntrenador = this.equipos.get(entrenadorId) || [];
+            return await Promise.all(trainers.map(async (entrenador) => {
+                const equiposEntrenador = this.equipos.get(entrenador.id) || [];
                 return {
-                    entrenador: {
-                        id: entrenador.id,
-                        nombre: entrenador.nombre,
-                        edad: entrenador.edad,
-                        sexo: entrenador.sexo
-                    },
+                    entrenador,
                     equipos: equiposEntrenador
                 };
             }));
         } catch (error) {
-            console.error('Error al obtener entrenadores:', error.message);
-            if (error.response) {
-                console.error('Detalles de la respuesta:', {
-                    status: error.response.status,
-                    data: error.response.data
-                });
-            }
+            this.logger.error(`Error al obtener todos los entrenadores: ${error.message}`);
             throw new HttpException(
                 `Error al obtener los entrenadores: ${error.message}`,
-                error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    async eliminarPokemonDeEquipo(entrenadorId: string, equipoId: string, pokemonId: number): Promise<any> {
+        try {
+            // Verificar que el entrenador existe
+            const entrenador = await this.entrenadorService.obtenerEntrenador(parseInt(entrenadorId));
+            
+            const equipos = this.equipos.get(entrenadorId);
+            if (!equipos) {
+                throw new HttpException('Equipo no encontrado', HttpStatus.NOT_FOUND);
+            }
+
+            const equipo = equipos.find(e => e.getId() === parseInt(equipoId));
+            if (!equipo) {
+                throw new HttpException('Equipo no encontrado', HttpStatus.NOT_FOUND);
+            }
+
+            // Obtener los pokémon actuales del equipo
+            const pokemones = equipo.getPokemones();
+            
+            // Verificar que el pokémon existe en el equipo
+            const pokemonIndex = pokemones.findIndex(p => p.getId() === pokemonId);
+            if (pokemonIndex === -1) {
+                throw new HttpException('Pokemon no encontrado en el equipo', HttpStatus.NOT_FOUND);
+            }
+
+            // Verificar que no sea el último pokémon del equipo
+            if (pokemones.length <= 1) {
+                throw new HttpException('No se puede eliminar el último Pokemon del equipo', HttpStatus.BAD_REQUEST);
+            }
+
+            // Eliminar el pokémon del equipo
+            pokemones.splice(pokemonIndex, 1);
+            
+            // Crear un nuevo equipo con los pokémon actualizados
+            const equipoActualizado = new EquipoPokemon(equipo.getId(), equipo.getNombre(), pokemones);
+            
+            // Actualizar el equipo en la lista
+            const equipoIndex = equipos.findIndex(e => e.getId() === parseInt(equipoId));
+            equipos[equipoIndex] = equipoActualizado;
+
+            return {
+                entrenador,
+                equipo: equipoActualizado
+            };
+        } catch (error) {
+            this.logger.error(`Error al eliminar Pokemon del equipo: ${error.message}`);
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(
+                `Error al eliminar Pokemon del equipo: ${error.message}`,
+                HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
     }

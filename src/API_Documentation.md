@@ -3,42 +3,19 @@
 ## Trainer Service
 
 ### Base URL
-`http://localhost:8000/api/entrenadores`
+`https://run.mocky.io/v3/a7337c0c-7292-45c9-8e23-083fd9222b8e`
 
 ### JSON Format
 - **External API Response**:
   ```json
   {
-    "entrenadores": [
+    "trainers": [
       {
-        "id": 1,
-        "nombre": "Ash Ketchum",
-        "edad": 10,
-        "sexo": "Masculino"
-      },
-      {
-        "id": 2,
-        "nombre": "Misty",
-        "edad": 12,
-        "sexo": "Femenino"
-      },
-      {
-        "id": 3,
-        "nombre": "Brock",
-        "edad": 15,
-        "sexo": "Masculino"
-      },
-      {
-        "id": 4,
-        "nombre": "Red",
-        "edad": 16,
-        "sexo": "Masculino"
-      },
-      {
-        "id": 5,
-        "nombre": "Blue",
-        "edad": 17,
-        "sexo": "Femenino"
+        "id": "1",
+        "birth_date": "1990-01-01",
+        "email": "ash.ketchum@example.com",
+        "first_name": "Ash",
+        "last_name": "Ketchum"
       }
     ]
   }
@@ -46,10 +23,11 @@
 - **Service Response**:
   ```json
   {
-    "id": 1,
-    "nombre": "Ash Ketchum",
-    "edad": 10,
-    "sexo": "Masculino"
+    "id": "1",
+    "birth_date": "1990-01-01",
+    "email": "ash.ketchum@example.com",
+    "first_name": "Ash",
+    "last_name": "Ketchum"
   }
   ```
 
@@ -66,135 +44,12 @@
 `http://localhost:8000/api/pokemon`
 
 ### JSON Format
-- **External API Response**:
-  ```json
-  {
-    "pokemon": [
-      {
-        "id": 1,
-        "nombre": "Bulbasaur",
-        "tipo": "Planta",
-        "descripcion": "Pokemon de tipo planta"
-      },
-      {
-        "id": 2,
-        "nombre": "Pikachu",
-        "tipo": "Eléctrico"
-      },
-      {
-        "id": 3,
-        "nombre": "Charmander",
-        "tipo": "Fuego"
-      },
-      {
-        "id": 4,
-        "nombre": "Squirtle",
-        "tipo": "Agua"
-      },
-      {
-        "id": 5,
-        "nombre": "Eevee",
-        "tipo": "Normal"
-      }
-    ]
-  }
-  ```
-- **External API Response**:
-  ```json
-  {
-    "id": 1,
-    "nombre": "Bulbasaur",
-    "tipo": "Planta",
-    "descripcion": "Pokemon de tipo planta"
-  }
-  ```
-- **Service Response**:
-  ```json
-  {
-    "id": 1,
-    "nombre": "Bulbasaur",
-    "tipo": "Planta",
-    "descripcion": "Pokemon de tipo planta"
-  }
-  ```
-- **External API Response**:
-  ```json
-  {
-    "id": 1,
-    "nombre": "Pikachu",
-    "tipo": "Eléctrico"
-  }
-  ```
-- **Service Response**:
-  ```json
-  {
-    "id": 1,
-    "nombre": "Pikachu",
-    "tipo": "Eléctrico"
-  }
-  ```
-- **External API Response**:
-  ```json
-  {
-    "pokemones": [
-      {
-        "id": 25,
-        "nombre": "Pikachu",
-        "tipos": [
-          "Eléctrico"
-        ],
-        "nivel": 35,
-        "estadisticas": {
-          "hp": 80,
-          "ataque": 90,
-          "defensa": 50,
-          "ataque_especial": 85,
-          "defensa_especial": 60,
-          "velocidad": 110
-        },
-        "movimientos": [
-          "Impactrueno",
-          "Rayo",
-          "Ataque Rápido",
-          "Onda Trueno"
-        ],
-        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png"
-      },
-      {
-        "id": 6,
-        "nombre": "Charizard",
-        "tipos": [
-          "Fuego",
-          "Volador"
-        ],
-        "nivel": 50,
-        "estadisticas": {
-          "hp": 100,
-          "ataque": 120,
-          "defensa": 70,
-          "ataque_especial": 140,
-          "defensa_especial": 100,
-          "velocidad": 115
-        },
-        "movimientos": [
-          "Lanzallamas",
-          "Vuelo",
-          "Garra Dragón",
-          "Onda Ígnea"
-        ],
-        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png"
-      }
-    ]
-  }
-  ```
 - **Service Response**:
   ```json
   {
     "id": 25,
     "nombre": "Pikachu",
-    "tipos": [
-      "Eléctrico"
-    ],
+    "tipos": ["Eléctrico"],
     "nivel": 35,
     "estadisticas": {
       "hp": 80,
@@ -216,40 +71,98 @@
 
 ### Endpoints
 - **GET /:id**  
-  Get a specific pokemon.
+  Get a specific pokemon by ID.
 
 ## Teams Service
 
 ### Base URL
 `http://localhost:8000/equipos`
 
+### JSON Format
+- **Create/Update Team Request**:
+  ```json
+  {
+    "nombre": "Equipo Principal",
+    "pokemonIds": [1, 2, 3]
+  }
+  ```
+
+- **Team Response**:
+  ```json
+  {
+    "entrenador": {
+      "id": "1",
+      "birth_date": "1990-01-01",
+      "email": "ash.ketchum@example.com",
+      "first_name": "Ash",
+      "last_name": "Ketchum"
+    },
+    "equipo": {
+      "id": 1,
+      "nombre": "Equipo Principal",
+      "pokemones": [
+        {
+          "id": 25,
+          "nombre": "Pikachu",
+          "tipos": ["Eléctrico"],
+          "nivel": 35
+        }
+      ]
+    }
+  }
+  ```
+
 ### Endpoints
 - **GET /**  
-  List all trainers with teams.
+  List all trainers with their teams.
+
 - **POST /:entrenadorId**  
-  Create a team for the specified trainer.
-  - **Request Body**:
-    ```json
-    {
-      "name": "Team Name",
-      "pokemonIds": [1, 2, 3]
-    }
-    ```
+  Create a new team for a trainer.  
+  Body: `{ nombre: string, pokemonIds: number[] }`  
+  Rules:
+  - Maximum 6 pokemon per team
+  - Trainer must exist
+
 - **GET /:entrenadorId**  
-  Get all teams for the specified trainer.
+  Get all teams for a specific trainer.
+
 - **GET /:entrenadorId/:equipoId**  
-  Get a specific team for the specified trainer.
+  Get a specific team from a trainer.
+
 - **PUT /:entrenadorId/:equipoId**  
-  Update the specified team for the specified trainer.
-  - **Request Body**:
-    ```json
-    {
-      "name": "Updated Team Name",
-      "pokemonIds": [1, 2, 4]
-    }
-    ```
+  Update a specific team.  
+  Body: `{ nombre: string, pokemonIds: number[] }`  
+  Rules:
+  - Maximum 6 pokemon per team
+  - Trainer and team must exist
+
 - **DELETE /:entrenadorId/:equipoId**  
-  Delete the specified team for the specified trainer.
+  Delete a specific team.
+
+- **DELETE /:entrenadorId/:equipoId/:pokemonId**  
+  Remove a specific pokemon from a team.  
+  Rules:
+  - Cannot remove the last pokemon from a team
+  - Pokemon must exist in the team
+  - Trainer and team must exist
+  
+  Response:
+  ```json
+  {
+    "entrenador": {
+      "id": "1",
+      "birth_date": "1990-01-01",
+      "email": "ash.ketchum@example.com",
+      "first_name": "Ash",
+      "last_name": "Ketchum"
+    },
+    "equipo": {
+      "id": 1,
+      "nombre": "Equipo Principal",
+      "pokemones": [/* Lista de pokémon restantes */]
+    }
+  }
+  ```
 
 ---
 
