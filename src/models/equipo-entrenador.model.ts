@@ -13,7 +13,7 @@ export class EquipoEntrenador {
         return {
             id: this.id,
             entrenadorId: this.entrenadorId,
-            equipos: this.equiposIds,
+            equiposIds: this.equiposIds,
             equipoSeleccionado: this.equipoSeleccionado
         };
     }

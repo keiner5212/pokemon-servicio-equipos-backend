@@ -11,6 +11,9 @@ import {
   updateDoc,
   type Firestore,
   addDoc,
+  query,
+  getDocs,
+  where,
 } from "firebase/firestore"
 import { ConfigService } from "@nestjs/config"
 
@@ -19,6 +22,7 @@ export class EquipoService {
   private readonly logger = new Logger(EquipoService.name)
   private readonly db: Firestore
   private readonly equiposCollection = "equipos-pokemon"
+  private readonly equiposEntrenadorCollection = "equipos-entrenador";
 
   constructor(
     private readonly httpService: HttpService,
@@ -70,6 +74,21 @@ export class EquipoService {
         )
         const docRef = await addDoc(equipoRef, equipoData.getSaveJson())
         this.logger.log(`Equipo creado con ID: ${docRef.id} para entrenador: ${entrenadorId}`)
+        // añadir el equipo al entrenador
+        const q = query(collection(this.db, this.equiposEntrenadorCollection), where("entrenadorId", "==", parseInt(entrenadorId)));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const entrenadorDoc = querySnapshot.docs[0]; // Asumimos que hay solo un entrenador con este ID
+          const equiposActualizados = [...entrenadorDoc.data().equiposIds, docRef.id];
+
+          await updateDoc(doc(this.db, this.equiposEntrenadorCollection, entrenadorDoc.id), {
+            equiposIds: equiposActualizados
+          });
+
+        } else {
+          throw new HttpException("Entrenador no encontrado", HttpStatus.NOT_FOUND);
+        }
+
         const equipo = new EquipoPokemon(docRef.id, String(nombre).trim(), pokemonIds.map(id => Number(id)))
         return equipo.toJSON()
       } catch (error) {
@@ -151,15 +170,36 @@ export class EquipoService {
         throw new HttpException("Equipo no encontrado", HttpStatus.NOT_FOUND)
       }
 
-      // Eliminar el equipo de Firestore
-      await deleteDoc(equipoRef)
-    } catch (error) {
-      this.logger.error(`Error al eliminar equipo: ${error.message}`)
-      if (error instanceof HttpException) {
-        throw error
+      // Buscar el entrenador que tiene este equipo
+      const q = query(collection(this.db, this.equiposEntrenadorCollection), where("equiposIds", "array-contains", equipoId));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const entrenadorDoc = querySnapshot.docs[0]; // solo hay un entrenador dueño del equipo
+        const entrenadorData = entrenadorDoc.data();
+
+        // Filtrar el equipo a eliminar de la lista de equiposIds
+        const equiposActualizados = entrenadorData.equiposIds.filter((id: string) => id !== equipoId);
+
+        // Actualizar la lista de equiposIds en Firestore
+        await updateDoc(doc(this.db, this.equiposEntrenadorCollection, entrenadorDoc.id), {
+          equiposIds: equiposActualizados
+        });
+
+        this.logger.log(`Equipo eliminado de la lista del entrenador con ID: ${entrenadorDoc.id}`);
       }
-      throw new HttpException(`Error al eliminar equipo: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR)
+
+      // Eliminar el equipo de Firestore
+      await deleteDoc(equipoRef);
+      this.logger.log(`Equipo eliminado con ID: ${equipoId}`);
+    } catch (error) {
+      this.logger.error(`Error al eliminar equipo: ${error.message}`);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(`Error al eliminar equipo: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
 }
 

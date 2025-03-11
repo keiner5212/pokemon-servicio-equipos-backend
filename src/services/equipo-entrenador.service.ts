@@ -11,6 +11,7 @@ import {
     getDocs,
     where,
     query,
+    writeBatch,
 } from "firebase/firestore";
 import { EquipoEntrenador, ToSaveEquipoEntrenador } from "@/models/equipo-entrenador.model";
 import { ConfigService } from "@nestjs/config";
@@ -21,6 +22,7 @@ import { HttpService } from "@nestjs/axios";
 export class EquipoEntrenadorService {
     private readonly logger = new Logger(EquipoEntrenadorService.name);
     private readonly db: Firestore;
+    private readonly equiposCollection = "equipos-pokemon"
     private readonly equiposEntrenadorCollection = "equipos-entrenador";
 
     constructor(
@@ -129,6 +131,19 @@ export class EquipoEntrenadorService {
                 throw new HttpException("Equipo de entrenador no encontrado", HttpStatus.NOT_FOUND);
             }
 
+            const { equiposIds } = equipoDoc.data();
+            const batch = writeBatch(this.db);
+            // Eliminar cada equipo de la colección "equipos-pokemon"
+            equiposIds.forEach((equipoId: string) => {
+                const equipoPokemonRef = doc(this.db, this.equiposCollection, equipoId);
+                batch.delete(equipoPokemonRef);
+            });
+
+            // Ejecutar la eliminación en lote
+            await batch.commit();
+            this.logger.log(`Se eliminaron los equipos asociados: ${equiposIds.join(", ")}`);
+
+            // Eliminar el equipo de entrenador después de eliminar sus equipos
             await deleteDoc(equipoRef);
             this.logger.log(`Equipo de entrenador eliminado con ID: ${equipoEntrenadorId}`);
         } catch (error) {
@@ -136,4 +151,5 @@ export class EquipoEntrenadorService {
             throw new HttpException(`Error al eliminar equipo de entrenador`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 }
