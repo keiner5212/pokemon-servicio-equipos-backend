@@ -1,4 +1,6 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import {
+    Controller, Get, Post, Put, Delete, Param, Body, Logger, HttpException, HttpStatus, HttpCode
+} from '@nestjs/common';
 import { EquipoEntrenadorService } from '../services/equipo-entrenador.service';
 
 @Controller('api/equipos-entrenador')
@@ -8,6 +10,7 @@ export class EquipoEntrenadorController {
     constructor(private readonly equipoEntrenadorService: EquipoEntrenadorService) { }
 
     @Post()
+    @HttpCode(HttpStatus.CREATED)
     async crearEquipoEntrenador(
         @Body('entrenadorId') entrenadorId: number,
         @Body('equiposIds') equiposIds: string[],
@@ -34,6 +37,7 @@ export class EquipoEntrenadorController {
     }
 
     @Put(':id')
+    @HttpCode(HttpStatus.OK)
     async actualizarEquipoEntrenador(
         @Param('id') id: string,
         @Body('entrenadorId') entrenadorId: number,
@@ -45,6 +49,7 @@ export class EquipoEntrenadorController {
     }
 
     @Delete(':id')
+    @HttpCode(HttpStatus.NO_CONTENT)
     async eliminarEquipoEntrenador(@Param('id') id: string) {
         this.logger.log(`Eliminando equipo de entrenador con ID: ${id}`);
         return this.equipoEntrenadorService.eliminarEquipoEntrenador(id);

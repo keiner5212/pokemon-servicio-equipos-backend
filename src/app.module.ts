@@ -12,6 +12,7 @@ import { EntrenadorService } from './services/temporal/entrenador.service';
 import { EquipoService } from './services/equipo.service';
 import { EquipoEntrenadorController } from "./controllers/equipo-entrenador.controller";
 import { EquipoController } from "./controllers/equipo.controller";
+import { EquipoEntrenadorService } from "./services/equipo-entrenador.service";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { EquipoController } from "./controllers/equipo.controller";
     PokemonService,
     EntrenadorService,
     EquipoService,
+    EquipoEntrenadorService
   ],
 })
 
