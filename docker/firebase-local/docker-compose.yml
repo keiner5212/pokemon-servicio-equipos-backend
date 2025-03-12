@@ -1,6 +1,6 @@
 services:
   firebase-emulator:
-    build: .
+    build: ./firebase
     container_name: firebase-emulator
     ports:
       - "4000:4000" # Firebase Emulator UI
@@ -12,3 +12,5 @@ services:
     environment:
       - FIREBASE_PROJECT=pokemon-equipos
     restart: unless-stopped
+    volumes:
+      - ./firebase:/firebase

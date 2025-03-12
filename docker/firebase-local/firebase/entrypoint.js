@@ -10,7 +10,7 @@ const main = () => {
   }
 
   execSync(
-    `firebase emulators:start --only auth,firestore,storage,database --project ${FIREBASE_PROJECT} --export-on-exit`,
+    `firebase emulators:start --only auth,firestore,storage,database --project ${FIREBASE_PROJECT} --import ./firebasedata --export-on-exit`,
     { stdio: "inherit" }
   );
 }
